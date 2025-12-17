@@ -1,0 +1,6 @@
+torch
+transformers
+tokenizers
+scikit-learn
+boto3
+safetensors

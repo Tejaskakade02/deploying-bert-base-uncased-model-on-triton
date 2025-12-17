@@ -1,0 +1,65 @@
+name: "classification"
+backend: "python"
+
+max_batch_size: 64
+
+input [
+  {
+    name: "TEXT"
+    data_type: TYPE_STRING
+    dims: [ 1 ]   # client must send shape [batch,1]
+  }
+]
+
+# In both classifier and MLM-fallback modes we now return TOP-K predictions.
+# All outputs are dynamic length ([-1]) to carry K entries per request item.
+output [
+  {
+    name: "LOGITS"
+    data_type: TYPE_FP32
+    dims: [ -1 ]  # top-k scores (same scale as PROBS here)
+  },
+  {
+    name: "CLASS_IDS"
+    data_type: TYPE_INT64
+    dims: [ -1 ]  # top-k ids
+  },
+  {
+    name: "CLASS_NAMES"
+    data_type: TYPE_STRING
+    dims: [ -1 ]  # top-k names/tokens
+  },
+  {
+    name: "PROBS"
+    data_type: TYPE_FP32
+    dims: [ -1 ]  # top-k probabilities
+  },
+  {
+  name: "SERVER_TIME_MS"
+  data_type: TYPE_FP32
+  dims: [ 1 ]
+}
+]
+
+dynamic_batching {
+  preferred_batch_size: [ 8, 16, 32 ]
+  max_queue_delay_microseconds: 1000
+}
+
+instance_group [
+  { kind: KIND_GPU, count: 1 }
+]
+
+# Only static / non-secret params stay here
+parameters: {
+  key: "MAX_LENGTH"
+  value: { string_value: "128" }
+}
+parameters: {
+  key: "MODEL_NAME"
+  value: { string_value: "bert-base-uncased" }
+}
+parameters: {
+  key: "LOCAL_ARTIFACTS_DIR"
+  value: { string_value: "/models/classification/1" }
+}
